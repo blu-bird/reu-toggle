@@ -263,14 +263,14 @@ int main()
   // }
 
   // generate generalized Petersen graphs iteratively
-  for (int k = 18; k < 18; k++)
+  for (int k = 6; k < 18; k++)
   {
     nimberComps = unordered_map<string, int>();
     n = 2 * k;
-    string startState = string(n, '1'); // string(k, '1') + string(k, '0');
-    createGPetersenAdjs(k, 3);
+    string startState = string(k, '1') + string(k, '0'); // string(k, '1') + string(k, '0'); string(n, '1');
+    createGPetersenAdjs(k, 2);
     int nimVal = runGame(startState, n);
-    cout << "nimber for GP(" << k << ", 3): " << nimVal << '\n';
+    cout << "nimber for GP(" << k << ", 2): " << nimVal << '\n';
   }
 
   // starting config
