@@ -1,3 +1,9 @@
+// options:
+// petersen n k
+// grid h w
+// file filename
+//
+
 // code compiled with gcc 10.3, may not be backwards compatible with older versions of c++
 #include <fstream>
 #include <vector>
@@ -83,21 +89,6 @@ void printSet(unordered_set<string> theSet)
     cout << *it << ", ";
   }
   cout << "}\n";
-}
-
-void printAdjs()
-{
-  for (int i = 0; i < adjMatrix.size(); i++)
-  {
-    cout << i << ": ";
-    unordered_set<int> adjs = adjMatrix[i];
-    cout << "{";
-    for (unordered_set<int>::iterator it = adjs.begin(); it != adjs.end(); ++it)
-    {
-      cout << *it << ", ";
-    }
-    cout << "}\n";
-  }
 }
 
 // toggle(gameState, place, n) toggles the state of place and all of its neighbors.
@@ -201,35 +192,136 @@ int runGame(string startState, int n)
   }
 }
 
+// readGraphLines(filename) reads the lines of the graph from the file and stores them in the global variable adjMatrix, and returns the value of n, which is the number of vertices in the graph
+int readGraphLines(string filename)
+{
+  int n = -1;              // default value if there is no file to read
+  vector<string> adjLines; // list of the adjacencies for each vtx, represented as strings, if reading from file
+
+  ifstream graphfile;
+  graphfile.open(filename);
+  if (graphfile.is_open())
+  {
+    // read the size from the file
+    string size;
+    getline(graphfile, size);
+    n = stoi(size);
+    // read each of the n successive lines from the file
+    // precondition -- there are n lines of binary strings after the first
+    string adjLine;
+    while (getline(graphfile, adjLine))
+    {
+      adjLines.push_back(adjLine);
+    }
+    graphfile.close();
+
+    // create graph matrix from file input
+    createAdjs(n, adjLines);
+  }
+  else
+  {
+    cout << "file not found, please check to see if you have the right file \n";
+  }
+
+  return n;
+}
+
+// initializeState(n, argc, argPos, argv[]) by default will always return a string of n 1's. if there are enough command line arguments, instead return the next command line argument which will be a bit string of length n, with 1s and 0s assigned to the vertices as given in the adjacency matrix or with the right conventions for the Petersen graph/grid.
+string initializeState(int n, int argc, int argPos, char *argv[])
+{
+  string startState = string(n, '1');
+  if (argPos < argc)
+  {
+    startState = argv[argPos];
+  }
+  return startState;
+}
+
 // options:
 // petersen n k
 // grid h w
 // file filename
-int main()
+int main(int argc, char *argv[])
 {
-  int n; // number of vertices in the graph
-  // vector<string> adjLines; // list of the adjacencies for each vtx, represented as strings
+  int n;                                      // number of vertices in the graph
+  nimberComps = unordered_map<string, int>(); // instantiate memoization table
 
-  // read from a file
-  // ifstream graphfile;
-  // graphfile.open("gp41.txt");
-  // if (graphfile.is_open())  {
-  //   // read the size from the file
-  //   string size;
-  //   getline(graphfile, size);
-  //   n = stoi(size);
-  //   // cout << n;
-  //   // read each of the n successive lines from the file
-  //   // precondition -- there are n lines of binary strings after the first
-  //   string adjLine;
-  //   while (getline(graphfile, adjLine))  {
-  //     adjLines.push_back(adjLine);
-  //   }
-  // }
-  // graphfile.close();
+  // no command line arguments
+  if (argc < 2)
+  {
+    cout << "please provide command line arguments \n";
+  }
+  else
+  {
+    char graphOption = tolower(argv[1][0]);
+    // cout << graphOption << "\n";
 
-  // create graph matrix from file input
-  // createAdjs(n, adjLines);
+    // parse the first command line option
+    switch (graphOption)
+    {
+    case 'f': // read from file
+      if (argc < 3)
+      {
+        cout << "please provide filename";
+        break;
+      }
+      else
+      {
+        string filename = argv[2]; // get file name
+        n = readGraphLines(filename);
+        // run game
+        if (n != -1)
+        {
+          string startState = initializeState(n, argc, 3, argv);
+          int nimVal = runGame(startState, n);
+          cout << "nimber of graph from file " << filename << ": " << nimVal << "\n";
+        }
+      }
+      break;
+
+    case 'p': // construct petersen graph
+      if (argc < 4)
+      {
+        cout << "please provide two parameters to generate Petersen graph";
+        break;
+      }
+      else
+      {
+        int m = stoi(argv[2]); // number of m-gons
+        int k = stoi(argv[3]); // twist number
+        n = 2 * m;
+
+        // create the adjacencies
+        createGPetersenAdjs(m, k);
+
+        string startState = initializeState(n, argc, 4, argv);
+        int nimVal = runGame(startState, n);
+        cout << "nimber of graph from GP(" << m << ", " << k << "): " << nimVal << "\n";
+      }
+      break;
+
+    case 'g': // construct grid
+      if (argc < 4)
+      {
+        cout << "please provide two parameters to generate grid";
+        break;
+      }
+      else
+      {
+        int h = stoi(argv[2]); // number of m-gons
+        int w = stoi(argv[3]); // twist number
+        n = h * w;
+
+        // create the adjacencies
+        createGridAdjs(h, w);
+
+        string startState = initializeState(n, argc, 4, argv);
+        int nimVal = runGame(startState, n);
+        cout << "nimber of " << h << " x " << w << "grid: " << nimVal << "\n";
+      }
+      break;
+    }
+  }
 
   // nimberComps = unordered_map<string, int>();
   // n = 3;
@@ -242,36 +334,24 @@ int main()
 
   // generate grids
   // 2 x n grids, 3 x n grids
-  //  for (int k = 1; k < 10; k++)  {
-  //    nimberComps = unordered_map<string, int>();
-  //    n = 2 * k;
-  //    string startState = string(n, '1');  // string(k-2, '1') + string(2, '0') + string(k-1, '1') + string(1, '0');
-  // halfed -- string(k-2, '1') + string(2, '0') + string(k-1, '1') + string(1, '0');
-  // string(n, '1');
-  // diagonal, 1's on opposite sides: string startState = string(2, '0') + string(k-3, '1') + string(2, '0') + string(k-3, '1') + string(2, '0');
-  // hat, 1's on same side: string(2, '0') + string(k - 4, '1') + string(3, '0') + string(k - 2, '1') + string(1, '0');
-  //    createGridAdjs(2, k);
-  //    int nimVal = runGame(startState, n);
-  //    cout << "nimber for 2 x " << k << " augmented grid: " << nimVal << '\n';
-  //  }
-  // createGPetersenAdjs(7, 3);
-  // string startState = string(14, '1');
-  // unordered_set<string> nextStates = getNextStates(14, startState);
-  // for (unordered_set<string>::iterator it = nextStates.begin(); it != nextStates.end(); ++it)
-  // {
-  //   cout << *it << "\n";
+  // for (int k = 1; k < 20; k++)  {
+  //   nimberComps = unordered_map<string, int>();
+  //   n = 3 * k;
+  //   string startState = string(n, '1');
+  //   createGridAdjs(3, k);
+  //   int nimVal = runGame(startState, n);
+  //   cout << "nimber for 3 x " << k << " grid: " << nimVal << '\n';
   // }
 
   // generate generalized Petersen graphs iteratively
-  for (int k = 16; k < 25; k++)
-  {
-    nimberComps = unordered_map<string, int>();
-    n = 2 * k;
-    string startState = string(n, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
-    createGPetersenAdjs(k, 3);
-    int nimVal = runGame(startState, n);
-    cout << "nimber for GP(" << k << ", 3): " << nimVal << '\n';
-  }
+  // for (int k = 23; k < 24; k++)  {
+  //   nimberComps = unordered_map<string, int>();
+  //   n = 2 * k;
+  //   string startState = string(n, '1');
+  //   createGPetersenAdjs(k, 1);
+  //   int nimVal = runGame(startState, n);
+  //   cout << "nimber for GP(" << k << ", 1): " << nimVal << '\n';
+  // }
 
   // starting config
   // string startState = string(n, '1');
