@@ -74,6 +74,66 @@ void createGridAdjs(int h, int w)
   return;
 }
 
+// createLadderTwistAdjs(w, k) will wipe adjMatrix, create the adjacencies for a "twisted ladder" grid of size 2 x w, where the top row is linked as usual, and every kth vertex is connected on the bottom row.
+// Precondition: w >= 3, k < w / 2
+void createLadderTwistAdjs(int w, int k)
+{
+  adjMatrix = vector<unordered_set<int>>();
+  for (int j = 0; j < 2 * w; j++)
+  {
+
+    if (j == 0)
+    {
+      adjMatrix.push_back({1, w});
+    }
+    else if (j == w)
+    {
+      adjMatrix.push_back({0, w + k});
+    }
+    else if (j == w - 1)
+    {
+      adjMatrix.push_back({w - 2, 2 * w - 1});
+    }
+    else if (j == 2 * w - 1)
+    {
+      adjMatrix.push_back({w - 1, 2 * w - k - 1});
+    }
+    else if (j < w)
+    {
+      adjMatrix.push_back({j - 1, j + 1, j + w});
+    }
+    else if (j - w < k)
+    {
+      adjMatrix.push_back({(j + w - k - 1) % w + w, (j + k) % w + w, j - w});
+    }
+    else if (2 * w - j <= k)
+    {
+      adjMatrix.push_back({(j + w - k) % w + w, (j + k + 1) % w + w, j - w});
+    }
+    else
+    {
+      adjMatrix.push_back({(j + w - k) % w + w, (j + k) % w + w, j - w});
+    }
+
+    // // r is the row of position k, indexed from 0
+    // int r = k / w;
+    // // c is the column of position k, indexed from 0
+    // int c = k % w;
+
+    // if (r != 0)
+    //   adjs.insert(k - w);
+    // if (r < 2 - 1)
+    //   adjs.insert(k + w);
+    // if (c != 0)
+    //   adjs.insert(k - 1);
+    // if (c < w - 1)
+    //   adjs.insert(k + 1);
+
+    // adjMatrix.push_back(adjs);
+  }
+  return;
+}
+
 // printSet prints theSet within curly braces, separated by commas
 void printSet(unordered_set<string> theSet)
 {
@@ -85,6 +145,7 @@ void printSet(unordered_set<string> theSet)
   cout << "}\n";
 }
 
+// printAdjs() prints the adjacencies in adjMatrix nicely.
 void printAdjs()
 {
   for (int i = 0; i < adjMatrix.size(); i++)
@@ -161,6 +222,12 @@ int mex(unordered_set<int> natSet)
   return currMex;
 }
 
+// rotate(state, n) rotates a state for GP(n, _) by one vertex counterclockwise, where n is the length of the outer/inner cycles
+string rotate(string state, int n)
+{
+  return state.substr(1, n - 1) + state.substr(0, 1) + state.substr(n + 1, n - 1) + state.substr(n, 1);
+}
+
 // runGame(startState, n) recursively computes the nimber of gameState by traversing through the whole subtree from that point, memoizing game states it has already seen.
 int runGame(string startState, int n)
 {
@@ -181,11 +248,28 @@ int runGame(string startState, int n)
     unordered_set<int> childNimbers;
     for (unordered_set<string>::iterator s = nextStates.begin(); s != nextStates.end(); ++s)
     {
-      if (nimberComps.count(*s) == 1)
+      // TODO: also check if cyclic permutations are present
+      // cycle through currRotState and check if each one is in nimberComps
+      // if we get a match then we should return that as the nimber
+      string currRotState = *s;
+      bool matchFound = false;
+      for (int k = 0; k < n; k++)
       {
-        childNimbers.insert(nimberComps[*s]);
+        if (nimberComps.count(currRotState) == 1)
+        {
+          childNimbers.insert(nimberComps[currRotState]);
+          matchFound = true;
+          break;
+        }
+        // n is the number of vertices here
+        currRotState = rotate(currRotState, n / 2);
       }
-      else
+
+      // if (nimberComps.count(*s) == 1)
+      // {
+      //   childNimbers.insert(nimberComps[*s]);
+      // }
+      if (!matchFound)
       {
         int gameNimVal = runGame(*s, n);
         nimberComps.emplace(*s, gameNimVal);
@@ -240,6 +324,17 @@ int main()
   //     cout << *it << ' ';
   //   }
 
+  // createLadderTwistAdjs(7, 2);
+  // printAdjs();
+
+  // why would you do this
+  // n = 30;
+  // int k = 10;
+  // createGPetersenAdjs(n, k);
+  // string startState = string(n, '1') + string(n, '0');
+  // int nimVal = runGame(startState, 2 * n);
+  // cout << "nimber for GP(30, 10) (half 1's): " << nimVal << '\n';
+
   // generate grids
   // 2 x n grids, 3 x n grids
   //  for (int k = 1; k < 10; k++)  {
@@ -262,15 +357,29 @@ int main()
   //   cout << *it << "\n";
   // }
 
+  // createLadderTwistAdjs(13, 2);
+  // printAdjs();
+
+  // testing the unrolling strat
+  // for (int j = 4; j < 25; j++)
+  // {
+  //   nimberComps = unordered_map<string, int>();
+  //   n = 2 * j;
+  //   string startState = string(2, '0') + string(j - 4, '1') + string(3, '0') + string(j - 2, '1') + string(1, '0');
+  //   createLadderTwistAdjs(j, 2);
+  //   int nimVal = runGame(startState, n);
+  //   cout << "nimber for LadderTwist(" << j << ", 2): " << nimVal << '\n';
+  // }
+
   // generate generalized Petersen graphs iteratively
-  for (int k = 16; k < 25; k++)
+  for (int k = 5; k < 25; k++)
   {
     nimberComps = unordered_map<string, int>();
     n = 2 * k;
     string startState = string(n, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
-    createGPetersenAdjs(k, 3);
+    createGPetersenAdjs(k, 2);
     int nimVal = runGame(startState, n);
-    cout << "nimber for GP(" << k << ", 3): " << nimVal << '\n';
+    cout << "nimber for GP(" << k << ", 2): " << nimVal << '\n';
   }
 
   // starting config
