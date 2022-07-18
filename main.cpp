@@ -114,22 +114,6 @@ void createLadderTwistAdjs(int w, int k)
     {
       adjMatrix.push_back({(j + w - k) % w + w, (j + k) % w + w, j - w});
     }
-
-    // // r is the row of position k, indexed from 0
-    // int r = k / w;
-    // // c is the column of position k, indexed from 0
-    // int c = k % w;
-
-    // if (r != 0)
-    //   adjs.insert(k - w);
-    // if (r < 2 - 1)
-    //   adjs.insert(k + w);
-    // if (c != 0)
-    //   adjs.insert(k - 1);
-    // if (c < w - 1)
-    //   adjs.insert(k + 1);
-
-    // adjMatrix.push_back(adjs);
   }
   return;
 }
@@ -248,7 +232,7 @@ int runGame(string startState, int n)
     unordered_set<int> childNimbers;
     for (unordered_set<string>::iterator s = nextStates.begin(); s != nextStates.end(); ++s)
     {
-      // TODO: also check if cyclic permutations are present
+      // also check if cyclic permutations are present
       // cycle through currRotState and check if each one is in nimberComps
       // if we get a match then we should return that as the nimber
       string currRotState = *s;
@@ -283,6 +267,20 @@ int runGame(string startState, int n)
 
     return stateNimber;
   }
+}
+
+// from a game starting with all 1's on GP(w-1, k), after making a move on the inside, this is the starting state of the board
+string innerTwistStart(int w, int k)
+{
+  string toprow = string(1, '0') + string(w - 2, '1') + string(1, '0');
+  string bottomrow = string(1, '0') + string(k - 1, '1') + string(1, '0') + string(w - 2 - 2 * k, '1') + string(1, '0') + string(k - 1, '1') + string(1, '0');
+  return toprow + bottomrow;
+}
+
+// from a game starting with all 1's on GP(w-1, k), after making a move on the outside, this is the starting state of the board
+string outerTwistStart(int w, int k)
+{
+  return string(2, '0') + string(w - 4, '1') + string(3, '0') + string(w - 2, '1') + string(1, '0');
 }
 
 // options:
@@ -361,26 +359,41 @@ int main()
   // printAdjs();
 
   // testing the unrolling strat
-  // for (int j = 4; j < 25; j++)
+  // for (int j = 13; j < 25; j++)
   // {
   //   nimberComps = unordered_map<string, int>();
   //   n = 2 * j;
-  //   string startState = string(2, '0') + string(j - 4, '1') + string(3, '0') + string(j - 2, '1') + string(1, '0');
+  //   string startState = outerTwistStart(j, 2); // innerTwistStart(j, 2);
   //   createLadderTwistAdjs(j, 2);
+  //   // createLadderTwistAdjs(j, 2);
   //   int nimVal = runGame(startState, n);
-  //   cout << "nimber for LadderTwist(" << j << ", 2): " << nimVal << '\n';
+  //   cout << "nimber for inner LadderTwist(" << j << ", 2): " << nimVal << '\n';
   // }
+  // createLadderTwistAdjs(8, 2);
+  // printAdjs();
 
-  // generate generalized Petersen graphs iteratively
-  for (int k = 5; k < 25; k++)
+  cout << "running\n";
+  int k = 29;
+  for (int i = 1; i <= k / 2; i++)
   {
     nimberComps = unordered_map<string, int>();
     n = 2 * k;
-    string startState = string(n, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
-    createGPetersenAdjs(k, 2);
+    string startState = string(k, '0') + string(k, '1'); // string(n, '1'); // string(k, '0') + string(k, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
+    createGPetersenAdjs(k, i);
     int nimVal = runGame(startState, n);
-    cout << "nimber for GP(" << k << ", 2): " << nimVal << '\n';
+    cout << "nimber for GP(" << k << ", " << i << ") with 1's on inside: " << nimVal << '\n';
   }
+
+  // generate generalized Petersen graphs iteratively
+  // for (int k = 7; k < 25; k++)
+  // {
+  //   nimberComps = unordered_map<string, int>();
+  //   n = 2 * k;
+  //   string startState = string(n, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
+  //   createGPetersenAdjs(k, 5);
+  //   int nimVal = runGame(startState, n);
+  //   cout << "nimber for GP(" << k << ", 5): " << nimVal << '\n';
+  // }
 
   // starting config
   // string startState = string(n, '1');

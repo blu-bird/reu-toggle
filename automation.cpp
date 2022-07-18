@@ -152,6 +152,12 @@ int mex(unordered_set<int> natSet)
   return currMex;
 }
 
+// rotate(state, n) rotates a state for GP(n, _) by one vertex counterclockwise, where n is the length of the outer/inner cycles
+string rotate(string state, int n)
+{
+  return state.substr(1, n - 1) + state.substr(0, 1) + state.substr(n + 1, n - 1) + state.substr(n, 1);
+}
+
 // runGame(startState, n) recursively computes the nimber of gameState by traversing through the whole subtree from that point, memoizing game states it has already seen.
 int runGame(string startState, int n)
 {
@@ -172,11 +178,24 @@ int runGame(string startState, int n)
     unordered_set<int> childNimbers;
     for (unordered_set<string>::iterator s = nextStates.begin(); s != nextStates.end(); ++s)
     {
-      if (nimberComps.count(*s) == 1)
+      // also check if cyclic permutations are present
+      // cycle through currRotState and check if each one is in nimberComps
+      // if we get a match then we should return that as the nimber
+      string currRotState = *s;
+      bool matchFound = false;
+      for (int k = 0; k < n; k++)
       {
-        childNimbers.insert(nimberComps[*s]);
+        if (nimberComps.count(currRotState) == 1)
+        {
+          childNimbers.insert(nimberComps[currRotState]);
+          matchFound = true;
+          break;
+        }
+        // n is the number of vertices here
+        currRotState = rotate(currRotState, n / 2);
       }
-      else
+
+      if (!matchFound)
       {
         int gameNimVal = runGame(*s, n);
         nimberComps.emplace(*s, gameNimVal);
@@ -232,13 +251,33 @@ string initializeState(int n, int argc, int argPos, char *argv[])
   string startState = string(n, '1');
   if (argPos < argc)
   {
-    startState = argv[argPos];
+    if (*argv[1] == 'p')
+    {
+      int k = n / 2; // guaranteed to be even if we have petersen
+      if (*argv[argPos] == 'i')
+      {
+        startState = string(k, '0') + string(k, '1');
+      }
+      else if (*argv[argPos] == 'o')
+      {
+        startState = string(k, '1') + string(k, '0');
+      }
+      else if (*argv[argPos] != 'a')
+      {
+        startState = argv[argPos];
+      }
+      // otherwise, don't do anything, should be all 1's
+    }
+    else
+    {
+      startState = argv[argPos];
+    }
   }
   return startState;
 }
 
 // options:
-// petersen n k
+// petersen n k [i/o/a]
 // grid h w
 // file filename
 int main(int argc, char *argv[])
@@ -296,7 +335,34 @@ int main(int argc, char *argv[])
 
         string startState = initializeState(n, argc, 4, argv);
         int nimVal = runGame(startState, n);
-        cout << "nimber of graph from GP(" << m << ", " << k << "): " << nimVal << "\n";
+        cout << "nimber of graph from GP(" << m << ", " << k << ") ";
+        if (argc >= 5)
+        {
+          switch (*argv[4])
+          {
+          case 'i':
+            cout << "(1's inside)";
+            break;
+          case 'o':
+            cout << "(1's outside)";
+            break;
+          case 'a':
+            cout << "(all 1's)";
+            break;
+          case '1':
+          case '0':
+            cout << "(custom)";
+            break;
+          default:
+            cout << "(default, all 1's)";
+            break;
+          }
+        }
+        else
+        {
+          cout << "(no args, all 1's)";
+        }
+        cout << ": " << nimVal << "\n";
       }
       break;
 
