@@ -48,6 +48,34 @@ void createGPetersenAdjs(int n, int k)
   return;
 }
 
+// createSubdivG1Adjs will wipe adjMatrix, create the adjacencies for GP(n, 1), but subdivide the outer cycle with k - 1 vertices between each pair of outer vertices
+void createSubdivG1Adjs(int n, int k)
+{
+  adjMatrix = vector<unordered_set<int>>();
+  int w = n * k;
+  for (int j = 0; j < w + n; j++)
+  {
+    unordered_set<int> adjs = unordered_set<int>();
+    if (j < w) // subdivided outer cycle
+    {
+      adjs.insert((j + 1) % w);     // right neighbor
+      adjs.insert((j + w - 1) % w); // left neighbor
+      if (j % k == 0)               // should connect to the inside
+      {
+        adjs.insert(w + j / k);
+      }
+    }
+    else // normal inner cycle
+    {
+      adjs.insert((j - w) * k);             // outside cycle connection
+      adjs.insert(w + (j - w + 1) % n);     // right neighbor
+      adjs.insert(w + (j - w + n - 1) % n); // left neighbor
+    }
+    adjMatrix.push_back(adjs);
+  }
+  return;
+}
+
 // createGridAdjs(h, w) will wipe adjMatrix, create the adjacencies for an h x w grid and store them in adjMatrix.
 void createGridAdjs(int h, int w)
 {
@@ -235,25 +263,31 @@ int runGame(string startState, int n)
       // also check if cyclic permutations are present
       // cycle through currRotState and check if each one is in nimberComps
       // if we get a match then we should return that as the nimber
-      string currRotState = *s;
-      bool matchFound = false;
-      for (int k = 0; k < n; k++)
-      {
-        if (nimberComps.count(currRotState) == 1)
-        {
-          childNimbers.insert(nimberComps[currRotState]);
-          matchFound = true;
-          break;
-        }
-        // n is the number of vertices here
-        currRotState = rotate(currRotState, n / 2);
-      }
-
-      // if (nimberComps.count(*s) == 1)
+      // string currRotState = *s;
+      // bool matchFound = false;
+      // for (int k = 0; k < n; k++)
       // {
-      //   childNimbers.insert(nimberComps[*s]);
+      //   if (nimberComps.count(currRotState) == 1)
+      //   {
+      //     childNimbers.insert(nimberComps[currRotState]);
+      //     matchFound = true;
+      //     break;
+      //   }
+      //   // n is the number of vertices here
+      //   currRotState = rotate(currRotState, n / 2);
       // }
-      if (!matchFound)
+      // if (!matchFound)
+      // {
+      //   int gameNimVal = runGame(*s, n);
+      //   nimberComps.emplace(*s, gameNimVal);
+      //   childNimbers.insert(gameNimVal);
+      // }
+
+      if (nimberComps.count(*s) == 1)
+      {
+        childNimbers.insert(nimberComps[*s]);
+      }
+      else
       {
         int gameNimVal = runGame(*s, n);
         nimberComps.emplace(*s, gameNimVal);
@@ -369,20 +403,30 @@ int main()
   //   int nimVal = runGame(startState, n);
   //   cout << "nimber for inner LadderTwist(" << j << ", 2): " << nimVal << '\n';
   // }
-  // createLadderTwistAdjs(8, 2);
   // printAdjs();
-
-  cout << "running\n";
-  int k = 29;
-  for (int i = 1; i <= k / 2; i++)
+  int c = 3;
+  for (int k = 1; k < 10; k++)
   {
     nimberComps = unordered_map<string, int>();
-    n = 2 * k;
-    string startState = string(k, '0') + string(k, '1'); // string(n, '1'); // string(k, '0') + string(k, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
-    createGPetersenAdjs(k, i);
+    createSubdivG1Adjs(c, k);
+    // printAdjs();
+    n = c * k + c;
+    string startState = string(n, '1');
     int nimVal = runGame(startState, n);
-    cout << "nimber for GP(" << k << ", " << i << ") with 1's on inside: " << nimVal << '\n';
+    cout << "nimber for GP(" << c << ", 1) subdivided by " << k << ": " << nimVal << '\n';
   }
+
+  // cout << "running\n";
+  // int k = 37;
+  // for (int i = 1; i <= k / 2; i++)
+  // {
+  //   nimberComps = unordered_map<string, int>();
+  //   n = 2 * k;
+  //   string startState = string(k, '1') + string(k, '0'); // string(n, '1'); // string(k, '0') + string(k, '1'); // string(k, '1') + string(k, '0'); string(n, '1');
+  //   createGPetersenAdjs(k, i);
+  //   int nimVal = runGame(startState, n);
+  //   cout << "nimber for GP(" << k << ", " << i << ") with 1's on inside: " << nimVal << '\n';
+  // }
 
   // generate generalized Petersen graphs iteratively
   // for (int k = 7; k < 25; k++)
